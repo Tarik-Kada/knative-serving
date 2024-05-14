@@ -24,6 +24,7 @@ metadata:
   annotations:
     knative.dev/example-checksum: "632d47dd"
 data:
+  kubernetes.podspec-schedulername: "enabled"
   _example: |-
     ################################
     #                              #
@@ -148,7 +149,7 @@ data:
     #
     # WARNING: Cannot safely be disabled once enabled.
     # See: https://knative.dev/docs/serving/feature-flags/#kubernetes-scheduler-name
-    kubernetes.podspec-schedulername: "disabled"
+    kubernetes.podspec-schedulername: "enabled"
 
     # This feature flag allows end-users to add a subset of capabilities on the Pod's SecurityContext.
     #

@@ -190,8 +190,27 @@ func makePodSpec(rev *v1.Revision, cfg *config.Config) (*corev1.PodSpec, error) 
 		extraVolumes = append(extraVolumes, certVolume(networking.ServingCertName))
 	}
 
+	var schedulerName string
+	defaultCustomSchedulerName := "custom-scheduler"
+
+	// // Check if a custom scheduler name is provided and not the default
+    // if customScheduler, ok := rev.Annotations["serving.knative.dev/schedulerName"]; ok && customScheduler != defaultCustomSchedulerName {
+    //     schedulerName = customScheduler
+    // } else {
+    //     // Check if a pod in kube-system has the name 'custom-scheduler'
+    //     // Normally, you would use a Kubernetes client to list pods, but here we'll use a placeholder logic.
+    //     // You should replace this with actual code to check for the pod's existence.
+    //     if podExistsInKubeSystem(defaultCustomSchedulerName) {
+	schedulerName = defaultCustomSchedulerName
+    //     } else {
+    //         // Set to "" to use the default Kubernetes scheduler
+    //         schedulerName = ""
+    //     }
+    // }
+
 	podSpec := BuildPodSpec(rev, append(BuildUserContainers(rev), *queueContainer), cfg)
 	podSpec.Volumes = append(podSpec.Volumes, extraVolumes...)
+	podSpec.SchedulerName = schedulerName
 
 	if cfg.Observability.EnableVarLogCollection {
 		podSpec.Volumes = append(podSpec.Volumes, varLogVolume)
