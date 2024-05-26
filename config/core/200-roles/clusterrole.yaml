@@ -57,3 +57,6 @@ rules:
   - apiGroups: ["acme.cert-manager.io"]
     resources: ["challenges"]
     verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
+  - apiGroups: ["serving.local.dev"]
+    resources: ["customschedulers"]
+    verbs: ["get", "list", "watch"]
