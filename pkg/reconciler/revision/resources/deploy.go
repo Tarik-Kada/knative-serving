@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"context"
+	"log"
 
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/ptr"
@@ -38,8 +40,40 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	apiconfig "knative.dev/serving/pkg/apis/config"
 )
+
+// Structs to unmarshal the YAML content
+type CustomSchedulerSpec struct {
+    SchedulerName string `yaml:"schedulerName"`
+}
+
+type CustomScheduler struct {
+    APIVersion string              `yaml:"apiVersion"`
+    Kind       string              `yaml:"kind"`
+    Metadata   metav1.ObjectMeta   `yaml:"metadata"`
+    Spec       CustomSchedulerSpec `yaml:"spec"`
+}
+
+type ConfigMapData struct {
+    SchedulerName      string `yaml:"schedulerName"`
+    SchedulerNamespace string `yaml:"schedulerNamespace"`
+    CustomMetrics      string `yaml:"customMetrics"`
+    Parameters         string `yaml:"parameters"`
+}
+
+type ConfigMap struct {
+    APIVersion string            `yaml:"apiVersion"`
+    Kind       string            `yaml:"kind"`
+    Metadata   metav1.ObjectMeta `yaml:"metadata"`
+    Data       ConfigMapData     `yaml:"data"`
+}
 
 const certVolumeName = "server-certs"
 
@@ -190,23 +224,22 @@ func makePodSpec(rev *v1.Revision, cfg *config.Config) (*corev1.PodSpec, error) 
 		extraVolumes = append(extraVolumes, certVolume(networking.ServingCertName))
 	}
 
-	var schedulerName string
-	defaultCustomSchedulerName := "custom-scheduler"
+	schedulerName, err := determineSchedulerName(rev.Namespace)
+    if err != nil {
+        log.Printf("Error determining scheduler name: %v", err)
+        schedulerName = ""
+    }
 
-	// // Check if a custom scheduler name is provided and not the default
-    // if customScheduler, ok := rev.Annotations["serving.knative.dev/schedulerName"]; ok && customScheduler != defaultCustomSchedulerName {
-    //     schedulerName = customScheduler
-    // } else {
-    //     // Check if a pod in kube-system has the name 'custom-scheduler'
-    //     // Normally, you would use a Kubernetes client to list pods, but here we'll use a placeholder logic.
-    //     // You should replace this with actual code to check for the pod's existence.
-    //     if podExistsInKubeSystem(defaultCustomSchedulerName) {
-	schedulerName = defaultCustomSchedulerName
-    //     } else {
-    //         // Set to "" to use the default Kubernetes scheduler
-    //         schedulerName = ""
-    //     }
-    // }
+	// Check if a CustomScheduler is deployed in the cluster
+	// If it is, read the schedulerName
+		// Check if there is a ConfigMap with the name scheduler-config
+		// If there is, read the schedulerName and namespace from the ConfigMap
+			// Look for a pod with the name schedulerName in the namespace
+			// If it exists, use the schedulerName
+				// schedulerName = defaultCustomSchedulerName
+			// If it does not exist, use the default Kubernetes scheduler
+		// If there is not, use the defaultCustomSchedulerName
+	// If it is not, use the default Kubernetes scheduler
 
 	podSpec := BuildPodSpec(rev, append(BuildUserContainers(rev), *queueContainer), cfg)
 	podSpec.Volumes = append(podSpec.Volumes, extraVolumes...)
@@ -231,6 +264,116 @@ func makePodSpec(rev *v1.Revision, cfg *config.Config) (*corev1.PodSpec, error) 
 
 	return podSpec, nil
 }
+
+func getCustomSchedulerName(dynamicClient dynamic.Interface, namespace string) (string, error) {
+    log.Println("Attempting to get the active CustomScheduler...")
+
+    gvr := schema.GroupVersionResource{
+        Group:    "serving.local.dev",
+        Version:  "v1alpha1",
+        Resource: "customschedulers",
+    }
+
+    customSchedulerList, err := dynamicClient.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+    if err != nil {
+        log.Printf("Error getting CustomScheduler list: %v", err)
+        return "", err
+    }
+
+    if len(customSchedulerList.Items) == 0 {
+        log.Println("No active CustomScheduler found.")
+        return "", nil
+    }
+
+    // Assuming only one active CustomScheduler
+    customScheduler := customSchedulerList.Items[0]
+    schedulerName, found, err := unstructured.NestedString(customScheduler.Object, "spec", "schedulerName")
+    if err != nil || !found {
+        log.Printf("Error getting schedulerName from CustomScheduler: %v", err)
+        return "", err
+    }
+
+    log.Printf("Active CustomScheduler found with schedulerName: %s", schedulerName)
+    return schedulerName, nil
+}
+
+func getSchedulerConfig(kubeClient kubernetes.Interface) (string, string, error) {
+    log.Println("Attempting to get the scheduler-config ConfigMap...")
+    configMap, err := kubeClient.CoreV1().ConfigMaps("default").Get(context.TODO(), "scheduler-config", metav1.GetOptions{})
+    if err != nil {
+        log.Printf("Error getting scheduler-config ConfigMap: %v", err)
+        return "", "", err
+    }
+
+    schedulerName := configMap.Data["schedulerName"]
+    schedulerNamespace := configMap.Data["schedulerNamespace"]
+    log.Printf("Scheduler config found: schedulerName=%s, schedulerNamespace=%s", schedulerName, schedulerNamespace)
+    return schedulerName, schedulerNamespace, nil
+}
+
+func isSchedulerDeploymentRunning(kubeClient kubernetes.Interface, schedulerName, schedulerNamespace string) (bool, error) {
+    log.Printf("Checking if the scheduler deployment %s in namespace %s is running...", schedulerName, schedulerNamespace)
+    pods, err := kubeClient.CoreV1().Pods(schedulerNamespace).List(context.TODO(), metav1.ListOptions{
+        LabelSelector: fmt.Sprintf("app=%s", schedulerName),
+    })
+    if err != nil {
+        log.Printf("Error listing pods for scheduler deployment: %v", err)
+        return false, err
+    }
+
+    if len(pods.Items) == 0 {
+        log.Printf("No pods found for scheduler deployment %s in namespace %s", schedulerName, schedulerNamespace)
+        return false, nil
+    }
+
+    for _, pod := range pods.Items {
+        if pod.Status.Phase == corev1.PodRunning {
+            log.Printf("Scheduler deployment %s is running", schedulerName)
+            return true, nil
+        }
+    }
+
+    log.Printf("Scheduler deployment %s is not running", schedulerName)
+    return false, nil
+}
+
+func determineSchedulerName(namespace string) (string, error) {
+    config, err := rest.InClusterConfig()
+    if err != nil {
+        return "", fmt.Errorf("failed to create in-cluster config: %w", err)
+    }
+
+    kubeClient, err := kubernetes.NewForConfig(config)
+    if err != nil {
+        return "", fmt.Errorf("failed to create kubernetes client: %w", err)
+    }
+
+    dynamicClient, err := dynamic.NewForConfig(config)
+    if err != nil {
+        return "", fmt.Errorf("failed to create dynamic client: %w", err)
+    }
+
+    schedulerName, err := getCustomSchedulerName(dynamicClient, namespace)
+    if err != nil || schedulerName == "" {
+        log.Println("Using default scheduler.")
+        return "", err
+    }
+
+    extSchedulerName, extSchedulerNamespace, err := getSchedulerConfig(kubeClient)
+    if err != nil {
+        log.Println("Using default scheduler.")
+        return "", err
+    }
+
+    isRunning, err := isSchedulerDeploymentRunning(kubeClient, extSchedulerName, extSchedulerNamespace)
+    if err != nil || !isRunning {
+        log.Println("Using default scheduler.")
+        return "", err
+    }
+
+    return schedulerName, nil
+}
+
 
 // BuildUserContainers makes an array of containers from the Revision template.
 func BuildUserContainers(rev *v1.Revision) []corev1.Container {
