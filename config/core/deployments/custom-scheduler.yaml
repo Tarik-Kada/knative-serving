@@ -1,6 +1,6 @@
 apiVersion: serving.local.dev/v1alpha1
 kind: CustomScheduler
 metadata:
-  name: scheduler-binder
+  name: custom-scheduler-controller
 spec:
   schedulerName: custom-scheduler
