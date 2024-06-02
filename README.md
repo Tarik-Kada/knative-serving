@@ -19,7 +19,9 @@ The updated framework and its custom scheduler can be easily controlled through 
 
 This repo also contains some [Bash scripts](LINK TO BE ADDED) to get users started. These Bash scripts
 use KinD (Kubernetes in Docker) to run a local cluster, and the Kubernetes Command Line Tool (kubectl)
-to deploy the necessary services.
+to deploy the necessary services. The scripts also deploy [the Prometheus stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
+to the cluster. This can be removed, but this will disable the functionality of passing custom queries
+to their deployed custom scheduling algorithm. [Helm](https://helm.sh/docs/intro/install/) is required to deploy the Prometheus stack successfully.
 
 The Knative Serving project provides middleware primitives that enable:
 
