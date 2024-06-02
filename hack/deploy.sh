@@ -9,8 +9,8 @@ echo "---------------------------------------------------------------"
 
 # Set KO_DOCKER_REPO to the kind cluster
 DOCKERHUB_USERNAME="tarikkada"
-export KO_DOCKER_REPO='docker.io/'$DOCKERHUB_USERNAME
-echo "KO_DOCKER_REPO has been set to docker.io/tarikkada"
+export KO_DOCKER_REPO="docker.io/$DOCKERHUB_USERNAME"
+echo "KO_DOCKER_REPO has been set to docker.io/$DOCKERHUB_USERNAME"
 
 # Build and deploy knative serving
 echo "Building and deploying knative serving..."
