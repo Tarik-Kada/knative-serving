@@ -8,8 +8,8 @@ echo "cert-manager has been deployed successfully."
 echo "---------------------------------------------------------------"
 
 # Set KO_DOCKER_REPO to the kind cluster
-# export KO_DOCKER_REPO="kind.local"
-export KO_DOCKER_REPO='docker.io/tarikkada'
+DOCKERHUB_USERNAME="tarikkada"
+export KO_DOCKER_REPO='docker.io/'$DOCKERHUB_USERNAME
 echo "KO_DOCKER_REPO has been set to docker.io/tarikkada"
 
 # Build and deploy knative serving
@@ -47,10 +47,18 @@ echo "Kourier has been installed as the ingress controller."
 
 kubectl wait --for=condition=Ready -n knative-serving
 
-# Forwarding ports for service invocation
+# Deploy the Prometheus stack with Helm
+echo "Installing Prometheus stack..."
 
-# Wait for pods to be ready
-echo "Waiting for pods to be ready..."
-kubectl wait --for=condition=Ready -n kourier-system --all pods
-echo "Forwarding ports (:8080) for service invocation..."
-kubectl port-forward -n kourier-system svc/kourier 8080:80
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install prometheus prometheus-community/kube-prometheus-stack -n default -f monitoring_values.yaml
+echo "Prometheus stack has been installed."
+echo "---------------------------------------------------------------"
+
+# Apply the serviceMonitors/PodMonitors to collect metrics from knative
+echo "Applying serviceMonitors/PodMonitors to collect metrics from knative..."
+kubectl apply -f https://raw.githubusercontent.com/knative-extensions/monitoring/main/servicemonitor.yaml
+
+echo "Loading Grafana dashboards..."
+kubectl apply -f https://raw.githubusercontent.com/knative-extensions/monitoring/main/grafana/dashboards.yaml
