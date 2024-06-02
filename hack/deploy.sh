@@ -8,7 +8,7 @@ echo "cert-manager has been deployed successfully."
 echo "---------------------------------------------------------------"
 
 # Set KO_DOCKER_REPO to the kind cluster
-DOCKERHUB_USERNAME="tarikkada"
+DOCKERHUB_USERNAME="YOUR DOCKERHUB USERNAME"
 export KO_DOCKER_REPO="docker.io/$DOCKERHUB_USERNAME"
 echo "KO_DOCKER_REPO has been set to docker.io/$DOCKERHUB_USERNAME"
 
