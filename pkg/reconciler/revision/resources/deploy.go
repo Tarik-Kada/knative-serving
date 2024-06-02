@@ -226,7 +226,7 @@ func makePodSpec(rev *v1.Revision, cfg *config.Config) (*corev1.PodSpec, error) 
 
 	schedulerName, err := determineSchedulerName(rev.Namespace)
     if err != nil {
-        log.Printf("Error determining scheduler name: %v", err)
+        log.Printf("deploy.go: Error determining scheduler name: %v", err)
         schedulerName = ""
     }
 
@@ -276,7 +276,7 @@ func getCustomSchedulerName(dynamicClient dynamic.Interface, namespace string) (
 
     customSchedulerList, err := dynamicClient.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
     if err != nil {
-        log.Printf("Error getting CustomScheduler list: %v", err)
+        log.Printf("deploy.go: Error getting CustomScheduler list: %v", err)
         return "", err
     }
 
@@ -289,11 +289,11 @@ func getCustomSchedulerName(dynamicClient dynamic.Interface, namespace string) (
     customScheduler := customSchedulerList.Items[0]
     schedulerName, found, err := unstructured.NestedString(customScheduler.Object, "spec", "schedulerName")
     if err != nil || !found {
-        log.Printf("Error getting schedulerName from CustomScheduler: %v", err)
+        log.Printf("deploy.go: Error getting schedulerName from CustomScheduler: %v", err)
         return "", err
     }
 
-    log.Printf("Active CustomScheduler found with schedulerName: %s", schedulerName)
+    log.Printf("deploy.go: Active CustomScheduler found with schedulerName: %s", schedulerName)
     return schedulerName, nil
 }
 
@@ -301,39 +301,39 @@ func getSchedulerConfig(kubeClient kubernetes.Interface) (string, string, error)
     log.Println("Attempting to get the scheduler-config ConfigMap...")
     configMap, err := kubeClient.CoreV1().ConfigMaps("default").Get(context.TODO(), "scheduler-config", metav1.GetOptions{})
     if err != nil {
-        log.Printf("Error getting scheduler-config ConfigMap: %v", err)
+        log.Printf("deploy.go: Error getting scheduler-config ConfigMap: %v", err)
         return "", "", err
     }
 
     schedulerName := configMap.Data["schedulerName"]
     schedulerNamespace := configMap.Data["schedulerNamespace"]
-    log.Printf("Scheduler config found: schedulerName=%s, schedulerNamespace=%s", schedulerName, schedulerNamespace)
+    log.Printf("deploy.go: Scheduler config found: schedulerName=%s, schedulerNamespace=%s", schedulerName, schedulerNamespace)
     return schedulerName, schedulerNamespace, nil
 }
 
 func isSchedulerDeploymentRunning(kubeClient kubernetes.Interface, schedulerName, schedulerNamespace string) (bool, error) {
-    log.Printf("Checking if the scheduler deployment %s in namespace %s is running...", schedulerName, schedulerNamespace)
+    log.Printf("deploy.go: Checking if the scheduler deployment %s in namespace %s is running...", schedulerName, schedulerNamespace)
     pods, err := kubeClient.CoreV1().Pods(schedulerNamespace).List(context.TODO(), metav1.ListOptions{
         LabelSelector: fmt.Sprintf("app=%s", schedulerName),
     })
     if err != nil {
-        log.Printf("Error listing pods for scheduler deployment: %v", err)
+        log.Printf("deploy.go: Error listing pods for scheduler deployment: %v", err)
         return false, err
     }
 
     if len(pods.Items) == 0 {
-        log.Printf("No pods found for scheduler deployment %s in namespace %s", schedulerName, schedulerNamespace)
+        log.Printf("deploy.go: No pods found for scheduler deployment %s in namespace %s", schedulerName, schedulerNamespace)
         return false, nil
     }
 
     for _, pod := range pods.Items {
         if pod.Status.Phase == corev1.PodRunning {
-            log.Printf("Scheduler deployment %s is running", schedulerName)
+            log.Printf("deploy.go: Scheduler deployment %s is running", schedulerName)
             return true, nil
         }
     }
 
-    log.Printf("Scheduler deployment %s is not running", schedulerName)
+    log.Printf("deploy.go: Scheduler deployment %s is not running", schedulerName)
     return false, nil
 }
 
