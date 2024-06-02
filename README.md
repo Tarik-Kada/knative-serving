@@ -12,6 +12,15 @@ Knative Serving builds on Kubernetes to support deploying and serving of
 applications and functions as serverless containers. Serving is easy to get
 started with and scales to support advanced scenarios.
 
+This repository is a fork of the original Knative-serving project. It extends
+the original framework with the definition and deployment of a custom scheduler controller.
+For the implementation of the custom scheduler controller, see [its GitHub repository](https://github.com/Tarik-Kada/custom-scheduler-controller).
+The updated framework and its custom scheduler can be easily controlled through the [ks-cs-dashboard](https://github.com/Tarik-Kada/kc-cs-dashboard).
+
+This repo also contains some [Bash scripts](LINK TO BE ADDED) to get users started. These Bash scripts
+use KinD (Kubernetes in Docker) to run a local cluster, and the Kubernetes Command Line Tool (kubectl)
+to deploy the necessary services.
+
 The Knative Serving project provides middleware primitives that enable:
 
 - Rapid deployment of serverless containers
