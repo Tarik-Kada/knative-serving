@@ -13,3 +13,5 @@ Knative Serving.
 - `update-deps.sh` Updates Go dependencies.
 - `verify-codegen.sh` Verifies that auto-generated client libraries are
   up-to-date.
+- `deploy.sh` Quick start deploy to cluster set to Kubernetes context
+- `quickstart_cluster` Contains scripts for creation and destruction of local cluster using KinD. Can be reconfigured through the kind-config.yaml file

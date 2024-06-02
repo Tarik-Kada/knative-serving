@@ -17,11 +17,14 @@ the original framework with the definition and deployment of a custom scheduler 
 For the implementation of the custom scheduler controller, see [its GitHub repository](https://github.com/Tarik-Kada/custom-scheduler-controller).
 The updated framework and its custom scheduler can be easily controlled through the [ks-cs-dashboard](https://github.com/Tarik-Kada/kc-cs-dashboard).
 
-This repo also contains some [Bash scripts](LINK TO BE ADDED) to get users started. These Bash scripts
-use KinD (Kubernetes in Docker) to run a local cluster, and the Kubernetes Command Line Tool (kubectl)
-to deploy the necessary services. The scripts also deploy [the Prometheus stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
+This repo also contains som [Bash scripts](https://github.com/Tarik-Kada/knative-serving/blob/main/hack) to get users started.
+KinD (Kubernetes in Docker) can be used to run a local cluster. The script uses the Kubernetes Command Line Tool (kubectl)
+to deploy the necessary services. The script also deploys [the Prometheus stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
 to the cluster. This can be removed, but this will disable the functionality of passing custom queries
 to their deployed custom scheduling algorithm. [Helm](https://helm.sh/docs/intro/install/) is required to deploy the Prometheus stack successfully.
+
+Run [the `deploy.sh` script](https://github.com/Tarik-Kada/knative-serving/blob/main/hack/deploy.sh) found in [the hack repository](https://github.com/Tarik-Kada/knative-serving/blob/main/hack) after creating the cluster using [the create_cluster.sh script](https://github.com/Tarik-Kada/knative-serving/blob/main/hack/quickstart_cluster/create_cluster.sh) for a quick start. Deploy [the custom scheduler controller](https://github.com/Tarik-Kada/custom-scheduler-controller/) to support the use of external scheduling algorithms.
+
 
 The Knative Serving project provides middleware primitives that enable:
 
