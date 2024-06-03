@@ -266,7 +266,7 @@ func makePodSpec(rev *v1.Revision, cfg *config.Config) (*corev1.PodSpec, error) 
 }
 
 func getCustomSchedulerName(dynamicClient dynamic.Interface, namespace string) (string, error) {
-    log.Println("Attempting to get the active CustomScheduler...")
+    log.Println("deploy.go: Attempting to get the active CustomScheduler...")
 
     gvr := schema.GroupVersionResource{
         Group:    "serving.local.dev",
@@ -281,7 +281,7 @@ func getCustomSchedulerName(dynamicClient dynamic.Interface, namespace string) (
     }
 
     if len(customSchedulerList.Items) == 0 {
-        log.Println("No active CustomScheduler found.")
+        log.Println("deploy.go: No active CustomScheduler found.")
         return "", nil
     }
 
@@ -298,7 +298,7 @@ func getCustomSchedulerName(dynamicClient dynamic.Interface, namespace string) (
 }
 
 func getSchedulerConfig(kubeClient kubernetes.Interface) (string, string, error) {
-    log.Println("Attempting to get the scheduler-config ConfigMap...")
+    log.Println("deploy.go: deploy.go: Attempting to get the scheduler-config ConfigMap...")
     configMap, err := kubeClient.CoreV1().ConfigMaps("default").Get(context.TODO(), "scheduler-config", metav1.GetOptions{})
     if err != nil {
         log.Printf("deploy.go: Error getting scheduler-config ConfigMap: %v", err)
@@ -355,19 +355,19 @@ func determineSchedulerName(namespace string) (string, error) {
 
     schedulerName, err := getCustomSchedulerName(dynamicClient, namespace)
     if err != nil || schedulerName == "" {
-        log.Println("Using default scheduler.")
+        log.Println("deploy.go: Using default scheduler.")
         return "", err
     }
 
     extSchedulerName, extSchedulerNamespace, err := getSchedulerConfig(kubeClient)
     if err != nil {
-        log.Println("Using default scheduler.")
+        log.Println("deploy.go: Using default scheduler.")
         return "", err
     }
 
     isRunning, err := isSchedulerDeploymentRunning(kubeClient, extSchedulerName, extSchedulerNamespace)
     if err != nil || !isRunning {
-        log.Println("Using default scheduler.")
+        log.Println("deploy.go: Using default scheduler.")
         return "", err
     }
 
