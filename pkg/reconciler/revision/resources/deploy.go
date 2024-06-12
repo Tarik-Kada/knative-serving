@@ -230,17 +230,6 @@ func makePodSpec(rev *v1.Revision, cfg *config.Config) (*corev1.PodSpec, error) 
         schedulerName = ""
     }
 
-	// Check if a CustomScheduler is deployed in the cluster
-	// If it is, read the schedulerName
-		// Check if there is a ConfigMap with the name scheduler-config
-		// If there is, read the schedulerName and namespace from the ConfigMap
-			// Look for a pod with the name schedulerName in the namespace
-			// If it exists, use the schedulerName
-				// schedulerName = defaultCustomSchedulerName
-			// If it does not exist, use the default Kubernetes scheduler
-		// If there is not, use the defaultCustomSchedulerName
-	// If it is not, use the default Kubernetes scheduler
-
 	podSpec := BuildPodSpec(rev, append(BuildUserContainers(rev), *queueContainer), cfg)
 	podSpec.Volumes = append(podSpec.Volumes, extraVolumes...)
 	podSpec.SchedulerName = schedulerName
