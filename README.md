@@ -75,7 +75,7 @@ grafana:
       searchNamespace: ALL
 ```
 
-After this, you have successfully setup your deployment of the extended Knative Serving framework. You can manage and configure the resources by running the [ks-cs-dashboard](https://github.com/Tarik-Kada/kc-cs-dashboard).
+After this, you have successfully setup your deployment of the FlexSched framework. You can manage and configure the resources by running the [ks-cs-dashboard](https://github.com/Tarik-Kada/kc-cs-dashboard).
 
 If you are interested in contributing, see [CONTRIBUTING.md](./CONTRIBUTING.md)
 and [DEVELOPMENT.md](./DEVELOPMENT.md). For a list of all help wanted issues
